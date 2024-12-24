@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snippets - Join the Waitlist</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pouchdb@8.0.1/dist/pouchdb.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    animation: {
+                        'gradient': 'gradient 8s linear infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'bounce-slow': 'bounce 3s infinite',
+                        'spin-slow': 'spin 4s linear infinite',
+                        'wiggle': 'wiggle 1s ease-in-out infinite',
+                        'glow': 'glow 2s ease-in-out infinite',
+                        'gradient-rotate': 'gradient-rotate 8s ease-in-out infinite'
+                    },
+                    keyframes: {
+                        gradient: {
+                            '0%, 100%': {
+                                'background-size': '200% 200%',
+                                'background-position': 'left center'
+                            },
+                            '50%': {
+                                'background-size': '200% 200%',
+                                'background-position': 'right center'
+                            }
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-20px)' }
+                        },
+                        wiggle: {
+                            '0%, 100%': { transform: 'rotate(-3deg)' },
+                            '50%': { transform: 'rotate(3deg)' }
+                        },
+                        glow: {
+                            '0%, 100%': { 
+                                'box-shadow': '0 0 20px rgba(59, 130, 246, 0.5)',
+                                transform: 'scale(1)'
+                            },
+                            '50%': { 
+                                'box-shadow': '0 0 30px rgba(139, 92, 246, 0.7)',
+                                transform: 'scale(1.05)'
+                            }
+                        },
+                        gradient-rotate: {
+                            '0%': {
+                                'background-position': '0% 50%'
+                            },
+                            '50%': {
+                                'background-position': '100% 50%'
+                            },
+                            '100%': {
+                                'background-position': '0% 50%'
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .gradient-text {
+            background-image: linear-gradient(
+                300deg,
+                #3b82f6,
+                #8b5cf6,
+                #ec4899,
+                #3b82f6
+            );
+            background-size: 300% 300%;
+            animation: gradient-text 8s ease-in-out infinite;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-fill-color: transparent;
+        }
+
+        @keyframes gradient-text {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        .gradient-bg {
+            background: linear-gradient(45deg, #3b82f6, #8b5cf6, #ec4899);
+            background-size: 200% 200%;
+            animation: gradient 8s linear infinite;
+        }
+        .blob {
+            background: linear-gradient(45deg, #3b82f6, #8b5cf6);
+            filter: blur(70px);
+            opacity: 0.7;
+            transition: all 0.3s ease;
+        }
+        .blob:hover {
+            filter: blur(60px);
+            opacity: 0.8;
+            transform: scale(1.1);
+        }
+        .interactive-card {
+            transition: all 0.3s ease;
+        }
+        .interactive-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(59, 130, 246, 0.2);
+        }
+        @keyframes float-icons {
+            0%, 100% { transform: translateY(0) rotate(0); }
+            50% { transform: translateY(-10px) rotate(5deg); }
+        }
+        .floating-icon {
+            animation: float-icons 3s ease-in-out infinite;
+        }
+        .cursor-glow {
+            cursor: pointer;
+            position: relative;
+        }
+        .cursor-glow::after {
+            content: '';
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.3) 0%, rgba(59, 130, 246, 0) 70%);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .cursor-glow:hover::after {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-white min-h-screen overflow-x-hidden">
+    <!-- Background blobs -->
+    <div class="fixed inset-0 overflow-hidden -z-10">
+        <div class="blob absolute top-0 left-0 w-96 h-96 cursor-glow"></div>
+        <div class="blob absolute bottom-0 right-0 w-96 h-96" style="animation-delay: -3s;"></div>
+    </div>
+
+    <!-- Main content -->
+    <main class="container mx-auto px-4 py-20 relative">
+        <div class="max-w-3xl mx-auto text-center">
+            <div class="mb-8">
+                <!-- Code icon SVG with animation -->
+                <svg class="w-20 h-20 mx-auto mb-6 floating-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M16 18L22 12L16 6" class="stroke-blue-500 animate-pulse-slow" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M8 6L2 12L8 18" class="stroke-purple-500 animate-pulse-slow" style="animation-delay: -1s;" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <h1 class="text-5xl font-bold mb-4">
+                    <span class="gradient-text">Snippets</span>
+                </h1>
+                <p class="text-2xl text-gray-300 mb-6">
+                    Join the waitlist for the most innovative code snippet marketplace
+                </p>
+            </div>
+
+            <!-- Features grid with hover animations -->
+            <div class="grid md:grid-cols-3 gap-8 mb-12">
+                <div class="interactive-card p-6 rounded-xl bg-white/5 backdrop-blur-lg">
+                    <svg class="w-10 h-10 mx-auto mb-4 text-blue-500 floating-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    <h3 class="text-xl font-semibold mb-2">Lightning Fast</h3>
+                    <p class="text-gray-400">Find the perfect code snippet in seconds</p>
+                </div>
+                <div class="interactive-card p-6 rounded-xl bg-white/5 backdrop-blur-lg">
+                    <svg class="w-10 h-10 mx-auto mb-4 text-purple-500 floating-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                    <h3 class="text-xl font-semibold mb-2">Secure & Verified</h3>
+                    <p class="text-gray-400">All snippets are verified and secure</p>
+                </div>
+                <div class="interactive-card p-6 rounded-xl bg-white/5 backdrop-blur-lg">
+                    <svg class="w-10 h-10 mx-auto mb-4 text-pink-500 floating-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <h3 class="text-xl font-semibold mb-2">Fair Pricing</h3>
+                    <p class="text-gray-400">Competitive prices for quality code</p>
+                </div>
+            </div>
+
+            <!-- Waitlist form -->
+            <div class="max-w-md mx-auto">
+                <form id="waitlistForm" class="space-y-4">
+                    <div class="relative group">
+                        <input 
+                            type="email" 
+                            id="email"
+                            required
+                            placeholder="Enter your email"
+                            class="w-full px-6 py-4 bg-white/5 backdrop-blur-lg rounded-lg border border-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 outline-none transition-all text-white placeholder-gray-400 hover:border-blue-400"
+                        >
+                    </div>
+                    <button 
+                        type="submit"
+                        class="w-full gradient-bg text-white font-semibold px-6 py-4 rounded-lg hover:opacity-90 transition-all focus:ring-2 focus:ring-blue-500 outline-none animate-glow hover:scale-105 active:scale-95"
+                    >
+                        Join the Waitlist
+                    </button>
+                </form>
+                <p id="status" class="mt-4 text-sm"></p>
+               
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast notification -->
+    <div id="toast" class="fixed bottom-4 right-4 px-6 py-4 rounded-lg text-white opacity-0 translate-y-full transition-all duration-300 pointer-events-none"></div>
+
+    <script src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snippets Waitlist - Admin</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pouchdb@8.0.1/dist/pouchdb.min.js"></script>
+</head>
+<body class="bg-slate-900 text-white min-h-screen">
+    <!-- Login Section -->
+    <div id="loginSection" class="container mx-auto px-4 py-20 hidden">
+        <div class="max-w-md mx-auto">
+            <h1 class="text-3xl font-bold mb-8 text-center">Admin Access</h1>
+            <form id="loginForm" class="space-y-4">
+                <input 
+                    type="password" 
+                    id="password"
+                    placeholder="Enter admin password"
+                    class="w-full px-6 py-4 bg-white/5 backdrop-blur-lg rounded-lg border border-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 outline-none transition-all text-white placeholder-gray-400"
+                >
+                <button 
+                    type="submit"
+                    class="w-full bg-blue-600 text-white font-semibold px-6 py-4 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                    Login
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Admin Dashboard -->
+    <div id="adminSection" class="container mx-auto px-4 py-8 hidden">
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-3xl font-bold">Waitlist Entries</h1>
+            <div class="space-x-4">
+                <button 
+                    id="exportCsv"
+                    class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                >
+                    Export CSV
+                </button>
+                <button 
+                    id="logout"
+                    class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                >
+                    Logout
+                </button>
+            </div>
+        </div>
+
+        <div class="bg-white/5 backdrop-blur-lg rounded-lg p-6">
+            <div class="flex justify-between items-center mb-4">
+                <div class="text-xl">
+                    Total Entries: <span id="totalEntries">0</span>
+                </div>
+                <input 
+                    type="text" 
+                    id="searchInput"
+                    placeholder="Search emails..."
+                    class="px-4 py-2 bg-white/5 backdrop-blur-lg rounded-lg border border-gray-700 focus:border-blue-500 outline-none transition-all text-white placeholder-gray-400"
+                >
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="border-b border-gray-700">
+                            <th class="text-left py-3 px-4">Email</th>
+                            <th class="text-left py-3 px-4">Date Joined</th>
+                            <th class="text-right py-3 px-4">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="entriesTable"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast notification -->
+    <div id="toast" class="fixed bottom-4 right-4 px-6 py-4 rounded-lg text-white opacity-0 translate-y-full transition-all duration-300 pointer-events-none"></div>
+
+    <script>
+        // Admin password hash (change this to your preferred password)
+        const ADMIN_PASSWORD = '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918'; // Default: SHA-256 hash of 'admin'
+        
+        class Toast {
+            constructor() {
+                this.element = document.getElementById('toast');
+                this.timeoutId = null;
+            }
+
+            show(message, type = 'success') {
+                if (this.timeoutId) clearTimeout(this.timeoutId);
+                
+                this.element.className = `fixed bottom-4 right-4 px-6 py-4 rounded-lg text-white transition-all duration-300`;
+                this.element.classList.add(type === 'success' ? 'bg-green-500' : 'bg-red-500');
+                this.element.textContent = message;
+                this.element.style.opacity = '1';
+                this.element.style.transform = 'translateY(0)';
+                this.element.style.pointerEvents = 'auto';
+
+                this.timeoutId = setTimeout(() => {
+                    this.element.style.opacity = '0';
+                    this.element.style.transform = 'translateY(full)';
+                    this.element.style.pointerEvents = 'none';
+                }, 3000);
+            }
+        }
+
+        class AdminPanel {
+            constructor() {
+                this.db = new PouchDB('snippets_waitlist');
+                this.toast = new Toast();
+                this.authenticated = false;
+                this.maxLoginAttempts = 5;
+                this.loginAttempts = 0;
+                this.lockoutDuration = 30 * 60 * 1000; // 30 minutes
+                
+                // Check if user is locked out
+                const lockoutUntil = localStorage.getItem('adminLockoutUntil');
+                if (lockoutUntil && Date.now() < parseInt(lockoutUntil)) {
+                    this.showLockoutMessage(parseInt(lockoutUntil));
+                    return;
+                }
+
+                this.init();
+            }
+
+            async init() {
+                const savedToken = localStorage.getItem('adminToken');
+                if (savedToken) {
+                    try {
+                        // Verify token
+                        const tokenData = JSON.parse(atob(savedToken));
+                        if (tokenData.expires > Date.now()) {
+                            this.authenticated = true;
+                            this.showAdminPanel();
+                            return;
+                        }
+                    } catch (err) {
+                        console.error('Invalid token:', err);
+                    }
+                }
+                this.showLoginForm();
+            }
+
+            createToken() {
+                const token = {
+                    expires: Date.now() + (24 * 60 * 60 * 1000), // 24 hours
+                    random: Math.random().toString(36)
+                };
+                return btoa(JSON.stringify(token));
+            }
+
+            showLockoutMessage(until) {
+                const minutes = Math.ceil((until - Date.now()) / 60000);
+                document.body.innerHTML = `
+                    <div class="min-h-screen bg-slate-900 text-white flex items-center justify-center p-4">
+                        <div class="max-w-md w-full text-center">
+                            <div class="bg-red-500/10 border border-red-500 rounded-lg p-6">
+                                <h2 class="text-xl font-bold mb-4">Account Locked</h2>
+                                <p>Too many failed login attempts. Please try again in ${minutes} minutes.</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            showLoginForm() {
+                document.getElementById('loginSection').classList.remove('hidden');
+                document.getElementById('adminSection').classList.add('hidden');
+                
+                document.getElementById('loginForm').addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const password = document.getElementById('password').value;
+                    
+                    try {
+                        const hashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(password));
+                        const hashArray = Array.from(new Uint8Array(hashBuffer));
+                        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+                        
+                        if (hashHex === ADMIN_PASSWORD) {
+                            this.authenticated = true;
+                            const token = this.createToken();
+                            localStorage.setItem('adminToken', token);
+                            this.loginAttempts = 0;
+                            this.showAdminPanel();
+                        } else {
+                            this.loginAttempts++;
+                            if (this.loginAttempts >= this.maxLoginAttempts) {
+                                const lockoutUntil = Date.now() + this.lockoutDuration;
+                                localStorage.setItem('adminLockoutUntil', lockoutUntil.toString());
+                                this.showLockoutMessage(lockoutUntil);
+                            } else {
+                                this.toast.show(`Invalid password. ${this.maxLoginAttempts - this.loginAttempts} attempts remaining.`, 'error');
+                            }
+                        }
+                    } catch (err) {
+                        console.error('Login error:', err);
+                        this.toast.show('Login failed. Please try again.', 'error');
+                    }
+                });
+            }
+
+            showAdminPanel() {
+                document.getElementById('loginSection').classList.add('hidden');
+                document.getElementById('adminSection').classList.remove('hidden');
+                this.loadEntries();
+            }
+
+            async loadEntries() {
+                try {
+                    const result = await this.db.allDocs({
+                        include_docs: true,
+                        attachments: true
+                    });
+                    
+                    // Filter out design documents
+                    const entries = result.rows
+                        .filter(row => !row.id.startsWith('_design/'))
+                        .map(row => row.doc);
+                    
+                    this.updateTable(entries);
+                    document.getElementById('totalEntries').textContent = entries.length;
+                } catch (err) {
+                    console.error('Failed to load entries:', err);
+                    this.toast.show('Failed to load entries', 'error');
+                }
+            }
+
+            updateTable(entries) {
+                const tbody = document.getElementById('entriesTable');
+                tbody.innerHTML = entries.map(entry => `
+                    <tr class="border-b border-gray-700">
+                        <td class="py-3 px-4">${entry.email}</td>
+                        <td class="py-3 px-4">${new Date(entry.timestamp).toLocaleString()}</td>
+                        <td class="py-3 px-4 text-right">
+                            <button 
+                                onclick="admin.deleteEntry('${entry._id}')"
+                                class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                            >
+                                Delete
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+
+            async deleteEntry(id) {
+                try {
+                    const doc = await this.db.get(id);
+                    await this.db.remove(doc);
+                    this.toast.show('Entry deleted successfully');
+                    this.loadEntries();
+                } catch (err) {
+                    this.toast.show('Failed to delete entry', 'error');
+                }
+            }
+
+            handleSearch(e) {
+                const searchTerm = e.target.value.toLowerCase();
+                const filtered = this.entries.filter(entry => 
+                    entry.email.toLowerCase().includes(searchTerm)
+                );
+                this.updateTable(filtered);
+            }
+
+            exportToCsv() {
+                const csv = [
+                    ['Email', 'Date Joined'],
+                    ...this.entries.map(entry => [
+                        entry.email,
+                        new Date(entry.timestamp).toLocaleString()
+                    ])
+                ].map(row => row.join(',')).join('\n');
+
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.setAttribute('hidden', '');
+                a.setAttribute('href', url);
+                a.setAttribute('download', 'waitlist_entries.csv');
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            }
+        }
+
+        // Initialize admin dashboard
+        const admin = new AdminPanel();
+
+        // Logout button
+        document.getElementById('logout').addEventListener('click', () => {
+            localStorage.removeItem('adminToken');
+            admin.init();
+        });
+
+        // Export CSV
+        document.getElementById('exportCsv').addEventListener('click', () => {
+            admin.exportToCsv();
+        });
+
+        // Search
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            admin.handleSearch(e);
+        });
+    </script>
+</body>
+</html>
